@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from interfaces.api.v1.user_router import router as user_router
+from interfaces.api.v1.auth_router import router as auth_router
 from config.settings import settings
 from infrastructure.db.session import init_db, close_db
 
@@ -31,6 +32,7 @@ app.add_middleware(
 )
 
 # 라우터 등록
+app.include_router(auth_router, prefix="/api/v1")
 app.include_router(user_router, prefix="/api/v1", tags=["users"])
 
 @app.get("/")
@@ -38,7 +40,8 @@ async def root():
     return {
         "message": "Backend API is running",
         "database": "MongoDB + ChromaDB",
-        "architecture": "Clean Architecture"
+        "architecture": "Clean Architecture",
+        "auth": "Google OAuth2"
     }
 
 @app.get("/health")
@@ -48,7 +51,8 @@ async def health_check():
         "databases": {
             "mongodb": "connected",
             "chromadb": "connected"
-        }
+        },
+        "auth": "google_oauth2"
     }
 
 # 벡터 검색 API 추가

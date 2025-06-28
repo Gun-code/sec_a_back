@@ -17,8 +17,8 @@ async def verify_google_token(access_token: str) -> Dict[str, Any]:
             )
             
             if response.status_code != 200:
-                logger.warning(f"Google token verification failed: {response.status_code}")
-                raise ValueError("Invalid Google access token")
+                login_url = get_google_login_url()
+                return login_url
             
             user_info = response.json()
             logger.info(f"Google token verified for user: {user_info.get('email')}")

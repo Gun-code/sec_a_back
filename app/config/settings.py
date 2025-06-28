@@ -1,5 +1,8 @@
 from pydantic_settings import BaseSettings
 from typing import Optional
+from dotenv import load_dotenv
+import os
+load_dotenv()   
 
 class Settings(BaseSettings):
     # 앱 설정
@@ -14,15 +17,10 @@ class Settings(BaseSettings):
     chromadb_path: str = "./chromadb_data"
     chromadb_collection_name: str = "documents"
     
-    # JWT 설정
-    secret_key: str = "your-secret-key-change-this-in-production"
-    algorithm: str = "HS256"
-    access_token_expire_minutes: int = 30
-    
-    # 구글 OAuth 설정 (새로 추가)
-    google_client_id: str = ""
-    google_client_secret: str = ""
-    google_oauth_redirect_uri: str = "http://localhost:8000/api/v1/auth/google/callback"
+    # 구글 OAuth 설정
+    google_client_id: str = os.getenv("GOOGLE_CLIENT_ID")
+    google_client_secret: str = os.getenv("GOOGLE_CLIENT_SECRET")
+    google_oauth_redirect_uri: str = os.getenv("GOOGLE_OAUTH_REDIRECT_URI")
     
     # 외부 API 설정
     google_calendar_api_key: Optional[str] = None

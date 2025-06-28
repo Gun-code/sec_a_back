@@ -32,8 +32,8 @@ app.add_middleware(
 )
 
 # 라우터 등록
-app.include_router(auth_router, prefix="/api/v1")
-app.include_router(user_router, prefix="/api/v1", tags=["users"])
+app.include_router(auth_router, prefix="/api/v1/auth")
+app.include_router(user_router, prefix="/api/v1/users", tags=["users"])
 
 @app.get("/")
 async def root():
@@ -59,7 +59,7 @@ async def health_check():
 @app.post("/api/v1/search")
 async def search_documents(query: str, limit: int = 10):
     """벡터 기반 문서 검색"""
-    from infrastructure.db.repositories import VectorRepository
+    from infrastructure.db.vector_repository import VectorRepository
     
     vector_repo = VectorRepository()
     results = vector_repo.search_similar(query, limit)
@@ -73,7 +73,7 @@ async def search_documents(query: str, limit: int = 10):
 @app.get("/api/v1/vector/info")
 async def get_vector_info():
     """벡터 데이터베이스 정보 조회"""
-    from infrastructure.db.repositories import VectorRepository
+    from infrastructure.db.vector_repository import VectorRepository
     
     vector_repo = VectorRepository()
     info = vector_repo.get_collection_info()

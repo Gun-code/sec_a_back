@@ -1,5 +1,7 @@
 from fastapi import APIRouter, HTTPException, status, Query
 from pydantic import BaseModel
+from domain.user.entities import User
+from infrastructure.db.repositories import UserRepository
 from typing import Dict, Any, Optional
 from shared.google_oauth import (
     verify_google_token, 
@@ -23,9 +25,13 @@ class TokenVerifyRequest(BaseModel):
 class TokenRefreshRequest(BaseModel):
     refresh_token: str
 
+class LoginUrlRequest(BaseModel):
+    user_id: str
+    user_email: str
+
 class LoginUrlResponse(BaseModel):
     login_url: str
-    state: str
+    message: str
 
 class TokenResponse(BaseModel):
     access_token: str
@@ -47,21 +53,43 @@ class RefreshTokenErrorResponse(BaseModel):
     action_required: str
     login_url: str
 
-@router.get("/google/login", response_model=LoginUrlResponse)
-async def get_google_login_url_endpoint():
-    """구글 OAuth 로그인 URL을 반환합니다"""
+@router.post("/login", response_model=LoginUrlResponse)
+async def get_google_login_url_endpoint(request: LoginUrlRequest) -> LoginUrlResponse:
+    """사용자 ID를 키값으로 DB를 조회하여 
+    토큰 유무를 확인하고 토큰이 없으면 OAuth 로그인 URL을 반환합니다"""
     
     try:
-        # 랜덤 state 생성 (CSRF 방지)
-        state = str(uuid.uuid4())
-        
-        # 구글 로그인 URL 생성
-        login_url = get_google_login_url(state=state)
-        
-        return LoginUrlResponse(
-            login_url=login_url,
-            state=state
-        )
+        # 사용자 ID를 키값으로 DB를 조회하여 토큰 유무를 확인
+        user_id = request.user_id
+        user_email = request.user_email
+        user = User(user_id=user_id, email=user_email)
+
+        user_token = await UserRepository().get_token_by_id(user_id)
+        if user_token:
+            # 토큰이 있다면 토큰 검증
+            token_info = await verify_google_token(user_token.access_token)
+            if token_info:
+                return LoginUrlResponse(
+                    login_url='',
+                    message="로그인 성공"
+                )
+            else:
+                # 토큰이 없다면 구글 로그인 URL 생성
+                await UserRepository().create(user)
+                login_url = get_google_login_url()
+                return LoginUrlResponse(
+                    login_url=login_url,
+                    message="로그인 필요"
+                )
+        else:
+            # 구글 로그인 URL 생성
+            await UserRepository().create(user)
+            login_url = get_google_login_url()
+            return LoginUrlResponse(
+                login_url=login_url,
+                message="로그인 필요"
+            )
+
         
     except Exception as e:
         logger.error(f"Failed to generate Google login URL: {e}")
@@ -70,10 +98,9 @@ async def get_google_login_url_endpoint():
             detail="Failed to generate login URL"
         )
 
-@router.get("/google/callback", response_model=OAuthCallbackResponse)
+@router.get("/callback", response_model=OAuthCallbackResponse)
 async def google_oauth_callback(
     code: str = Query(..., description="구글에서 받은 authorization code"),
-    state: str = Query(..., description="CSRF 방지용 state"),
     error: Optional[str] = Query(None, description="OAuth 에러")
 ):
     """구글 OAuth 콜백을 처리합니다"""
@@ -103,13 +130,25 @@ async def google_oauth_callback(
         
         # 토큰 응답 구성
         token_response = TokenResponse(
-            access_token=access_token,
-            token_type="Bearer",
-            expires_in=expires_in,
-            expires_at=expires_at.isoformat() + "Z",
-            refresh_token=token_data.get("refresh_token"),
-            scope=token_data.get("scope")
+            access_token=access_token, # 엑세스 토큰
+            token_type="Bearer", # 토큰 타입
+            expires_in=expires_in, # 엑세스 토큰 만료 시간
+            expires_at=expires_at.isoformat() + "Z", # 엑세스 토큰 만료 시간
+            refresh_token=token_data.get("refresh_token"), # 리프레시 토큰
+            scope=token_data.get("scope") # 스코프
         )
+
+        # DB에 저장
+
+        user = await UserRepository().get_by_email(user_info.get("email"))
+        if user:
+            user.access_token = access_token
+            user.refresh_token = token_data.get("refresh_token")
+            user.expires_at = expires_at
+            await UserRepository().update(user)
+        else:
+            user = User(user_id=user_info.get("email"), email=user_info.get("email"))
+            await UserRepository().create(user)
         
         logger.info(f"OAuth login successful for user: {user_info.get('email')} (expires in {expires_in}s)")
         
@@ -132,7 +171,7 @@ async def google_oauth_callback(
             detail="OAuth callback failed"
         )
 
-@router.post("/google/verify")
+@router.post("/verify")
 async def verify_google_token_endpoint(request: TokenVerifyRequest):
     """구글 Access Token을 검증합니다"""
     

@@ -5,13 +5,15 @@ from dataclasses import dataclass
 @dataclass
 class User:
     """사용자 도메인 엔티티"""
-    id: Optional[str] = None  # MongoDB ObjectId는 문자열
-    username: str = ""
-    email: str = ""
-    full_name: Optional[str] = None
-    is_active: bool = True
+    user_id: str
+    username: Optional[str] = None
+    email: str
+    access_token: Optional[str] = None
+    refresh_token: Optional[str] = None
+    expires_at: Optional[datetime] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
+    is_active: bool = True
     
     def __post_init__(self):
         if self.created_at is None:

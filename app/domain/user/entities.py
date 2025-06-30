@@ -6,12 +6,12 @@ from dataclasses import dataclass
 class User:
     """사용자 도메인 엔티티"""
     user_id: str
-    username: Optional[str] = None
     email: str
+    created_at: datetime
+    username: Optional[str] = None
     access_token: Optional[str] = None
     refresh_token: Optional[str] = None
     expires_at: Optional[datetime] = None
-    created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
     is_active: bool = True
     
@@ -20,10 +20,10 @@ class User:
             self.created_at = datetime.now()
         self.updated_at = datetime.now()
     
-    def update_profile(self, full_name: Optional[str] = None, email: Optional[str] = None):
+    def update_profile(self, username: Optional[str] = None, email: Optional[str] = None):
         """프로필 정보 업데이트"""
-        if full_name is not None:
-            self.full_name = full_name
+        if username is not None:
+            self.username = username
         if email is not None:
             self.email = email
         self.updated_at = datetime.now()

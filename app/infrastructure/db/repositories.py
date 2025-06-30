@@ -15,12 +15,15 @@ class UserRepository(UserRepositoryInterface):
         """사용자 생성"""
         try:
             user_doc = UserDocument(
-                user_id=user.id,
+                user_id=user.user_id,
                 username=user.username,
                 email=user.email,
                 access_token=user.access_token,
                 refresh_token=user.refresh_token,
-                expires_at=user.expires_at
+                expires_at=user.expires_at,
+                created_at=user.created_at,
+                updated_at=user.updated_at,
+                is_active=user.is_active
             )
             
             await user_doc.insert()
@@ -32,7 +35,7 @@ class UserRepository(UserRepositoryInterface):
     async def get_by_id(self, user_id: str) -> Optional[User]:
         """ID로 사용자 조회"""
         try:
-            user_doc = await UserDocument.get(ObjectId(user_id))
+            user_doc = await UserDocument.find_one(UserDocument.user_id == user_id)
             return self._to_entity(user_doc) if user_doc else None
         except Exception:
             return None
@@ -55,12 +58,15 @@ class UserRepository(UserRepositoryInterface):
     async def update(self, user: User) -> User:
         """사용자 정보 업데이트"""
         try:
-            user_doc = await UserDocument.get(ObjectId(user.id))
+            user_doc = await UserDocument.find_one(UserDocument.user_id == user.user_id)
             if not user_doc:
                 raise ValueError("User not found")
             
+            user_doc.username = user.username
             user_doc.email = user.email
-            user_doc.full_name = user.full_name
+            user_doc.access_token = user.access_token
+            user_doc.refresh_token = user.refresh_token
+            user_doc.expires_at = user.expires_at
             user_doc.is_active = user.is_active
             user_doc.updated_at = user.updated_at
             
@@ -73,7 +79,7 @@ class UserRepository(UserRepositoryInterface):
     async def delete(self, user_id: str) -> bool:
         """사용자 삭제"""
         try:
-            user_doc = await UserDocument.get(ObjectId(user_id))
+            user_doc = await UserDocument.find_one(UserDocument.user_id == user_id)
             if user_doc:
                 await user_doc.delete()
                 return True
@@ -93,16 +99,31 @@ class UserRepository(UserRepositoryInterface):
     
     def _to_entity(self, user_doc: UserDocument) -> User:
         """MongoDB 문서를 도메인 엔티티로 변환"""
+
+       
+        # 양식 : {
+        # user_id: str
+        # username: Optional[str] = None
+        # email: str
+        # created_at: datetime
+        # access_token: Optional[str] = None
+        # refresh_token: Optional[str] = None
+        # expires_at: Optional[datetime] = None
+        # updated_at: Optional[datetime] = None
+        # is_active: bool = True
+        # }
+
         return User(
-            id=str(user_doc.id),
+            user_id=user_doc.user_id,
             username=user_doc.username,
             email=user_doc.email,
-            full_name=user_doc.full_name,
-            is_active=user_doc.is_active,
+            access_token=user_doc.access_token,
+            refresh_token=user_doc.refresh_token,
+            expires_at=user_doc.expires_at,
             created_at=user_doc.created_at,
-            updated_at=user_doc.updated_at
+            updated_at=user_doc.updated_at,
+            is_active=user_doc.is_active
         )
-
 
 
 class EventRepository:

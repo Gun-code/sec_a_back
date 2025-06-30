@@ -10,7 +10,6 @@ from shared.google_oauth import (
     refresh_access_token,
     get_token_info
 )
-import uuid
 import logging
 from datetime import datetime, timedelta
 
@@ -59,37 +58,45 @@ async def get_google_login_url_endpoint(request: LoginUrlRequest) -> LoginUrlRes
     토큰 유무를 확인하고 토큰이 없으면 OAuth 로그인 URL을 반환합니다"""
     
     try:
-        # 사용자 ID를 키값으로 DB를 조회하여 토큰 유무를 확인
         user_id = request.user_id
         user_email = request.user_email
-        user = User(user_id=user_id, email=user_email)
-
-        user_token = await UserRepository().get_token_by_id(user_id)
-        if user_token:
+        
+        # 기존 사용자 확인
+        user_repo = UserRepository()
+        user_token = await user_repo.get_token_by_id(user_id)
+        
+        if user_token and user_token.access_token:
             # 토큰이 있다면 토큰 검증
-            token_info = await verify_google_token(user_token.access_token)
-            if token_info:
-                return LoginUrlResponse(
-                    login_url='',
-                    message="로그인 성공"
-                )
-            else:
-                # 토큰이 없다면 구글 로그인 URL 생성
-                await UserRepository().create(user)
-                login_url = get_google_login_url()
-                return LoginUrlResponse(
-                    login_url=login_url,
-                    message="로그인 필요"
-                )
-        else:
-            # 구글 로그인 URL 생성
-            await UserRepository().create(user)
-            login_url = get_google_login_url()
-            return LoginUrlResponse(
-                login_url=login_url,
-                message="로그인 필요"
+            try:
+                token_info = await verify_google_token(user_token.access_token)
+                if token_info:
+                    return LoginUrlResponse(
+                        login_url='',
+                        message="이미 로그인되어 있습니다"
+                    )
+            except:
+                # 토큰이 만료되었으면 새로 로그인 진행
+                pass
+        
+        # 사용자가 없으면 미리 생성 (토큰 없이)
+        if not user_token:
+            new_user = User(
+                user_id=user_id,
+                username=None,  # OAuth에서 받을 예정
+                email=user_email,
+                access_token=None,
+                refresh_token=None,
+                expires_at=None
             )
-
+            await user_repo.create(new_user)
+        
+        # 구글 로그인 URL 생성 (state 없이)
+        login_url = get_google_login_url()
+        
+        return LoginUrlResponse(
+            login_url=login_url,
+            message="구글 계정으로 로그인하세요"
+        )
         
     except Exception as e:
         logger.error(f"Failed to generate Google login URL: {e}")
@@ -127,30 +134,38 @@ async def google_oauth_callback(
         
         # Access Token으로 사용자 정보 조회
         user_info = await verify_google_token(access_token)
+        google_email = user_info.get("email")
+        
+        if not google_email:
+            raise ValueError("Google email not received")
+        
+        # 이메일로 기존 사용자 찾기 (디스코드 사용자 ID 유지)
+        user_repo = UserRepository()
+        user = await user_repo.get_by_email(google_email)
+        
+        if not user:
+            raise ValueError(f"No user found for email: {google_email}. Please initiate login first.")
+        
+        # 기존 사용자 정보 업데이트 (user_id는 기존 디스코드 ID 유지)
+        user.username = user_info.get("name")
+        user.access_token = access_token
+        user.refresh_token = token_data.get("refresh_token")
+        user.expires_at = expires_at
+        user.updated_at = datetime.now()
+        
+        await user_repo.update(user)
         
         # 토큰 응답 구성
         token_response = TokenResponse(
-            access_token=access_token, # 엑세스 토큰
-            token_type="Bearer", # 토큰 타입
-            expires_in=expires_in, # 엑세스 토큰 만료 시간
-            expires_at=expires_at.isoformat() + "Z", # 엑세스 토큰 만료 시간
-            refresh_token=token_data.get("refresh_token"), # 리프레시 토큰
-            scope=token_data.get("scope") # 스코프
+            access_token=access_token,
+            token_type="Bearer",
+            expires_in=expires_in,
+            expires_at=expires_at.isoformat() + "Z",
+            refresh_token=token_data.get("refresh_token"),
+            scope=token_data.get("scope")
         )
-
-        # DB에 저장
-
-        user = await UserRepository().get_by_email(user_info.get("email"))
-        if user:
-            user.access_token = access_token
-            user.refresh_token = token_data.get("refresh_token")
-            user.expires_at = expires_at
-            await UserRepository().update(user)
-        else:
-            user = User(user_id=user_info.get("email"), email=user_info.get("email"))
-            await UserRepository().create(user)
         
-        logger.info(f"OAuth login successful for user: {user_info.get('email')} (expires in {expires_in}s)")
+        logger.info(f"OAuth login successful for user: {google_email} -> discord_id: {user.user_id} (expires in {expires_in}s)")
         
         return OAuthCallbackResponse(
             message="Login successful",
@@ -275,9 +290,9 @@ async def get_token_info_endpoint():
             "server_side": "API 호출 시 401 에러 발생하면 토큰 만료로 판단"
         },
         "endpoints": {
-            "login": "GET /api/v1/auth/google/login",
-            "callback": "GET /api/v1/auth/google/callback",
-            "verify": "POST /api/v1/auth/google/verify",
+            "login": "POST /api/v1/auth/login",
+            "callback": "GET /api/v1/auth/callback", 
+            "verify": "POST /api/v1/auth/verify",
             "refresh": "POST /api/v1/auth/token/refresh"
         }
     } 

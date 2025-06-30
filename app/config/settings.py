@@ -10,8 +10,8 @@ class Settings(BaseSettings):
     debug: bool = True
     
     # MongoDB 설정
-    mongodb_url: str = "mongodb://localhost:27017"
-    mongodb_db_name: str = "backend_db"
+    mongodb_url: str = os.getenv("MONGODB_URL")
+    mongodb_db_name: str = os.getenv("MONGODB_DB_NAME")
     
     # ChromaDB 설정
     chromadb_path: str = "./chromadb_data"

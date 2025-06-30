@@ -21,7 +21,7 @@ class Settings(BaseSettings):
     
     # MongoDB 설정
     mongodb_url: str = Field(default="mongodb://localhost:27017", env="MONGODB_URL")
-    mongodb_db_name: str = Field(default="backend_db", env="DATABASE_NAME")
+    database_name: str = Field(default="backend_db", env="DATABASE_NAME")
     
     # ChromaDB 설정
     chromadb_path: str = Field(default="./chromadb_data", env="CHROMADB_PATH")

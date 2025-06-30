@@ -28,7 +28,7 @@ async def init_mongodb():
         )
         
         # 데이터베이스 선택
-        database = mongodb_client[settings.mongodb_db_name]
+        database = mongodb_client[settings.database_name]
         
         # Beanie 초기화 (ODM)
         await init_beanie(

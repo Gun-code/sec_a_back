@@ -20,7 +20,7 @@ class Settings(BaseSettings):
     
     # MongoDB 설정
     mongodb_url: str = os.getenv("MONGODB_URL", "mongodb://localhost:27017")
-    mongodb_db_name: str = os.getenv("MONGODB_DB_NAME", "backend_db")
+    mongodb_db_name: str = os.getenv("DATABASE_NAME", "backend_db")
     
     # ChromaDB 설정
     chromadb_path: str = "./chromadb_data"

@@ -44,6 +44,18 @@ async def root():
         "auth": "Google OAuth2"
     }
 
+@app.post("/")
+async def root_post():
+    return {
+        "error": "POST method not supported on root path",
+        "message": "Please use appropriate API endpoints",
+        "available_endpoints": {
+            "docs": "/docs",
+            "auth": "/api/v1/auth/",
+            "users": "/api/v1/users/"
+        }
+    }
+
 @app.get("/health")
 async def health_check():
     return {

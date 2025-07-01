@@ -5,6 +5,7 @@ from interfaces.api.v1.user_router import router as user_router
 from interfaces.api.v1.auth_router import router as auth_router
 from config.settings import settings
 from infrastructure.db.session import init_db, close_db
+from fastapi.responses import FileResponse
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -66,6 +67,11 @@ async def health_check():
         },
         "auth": "google_oauth2"
     }
+
+# 파비콘 get 요청 시 sec_a_favicon.ico 파일 반환
+@app.get("/favicon.ico")
+async def favicon():
+    return FileResponse("favicon.ico")
 
 # TODO: 벡터 검색 API 구현 예정
 # @app.post("/api/v1/search")

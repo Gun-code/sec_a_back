@@ -24,7 +24,7 @@ class UserDocument(Document):
         name = "users"  # MongoDB 컬렉션 이름
         indexes = [
             IndexModel([("user_id", 1)], unique=True),  # user_id가 기본 키
-            IndexModel([("username", 1)], unique=True, sparse=True),  # username은 선택적 유니크
+            IndexModel([("username", 1)], unique=True, sparse=True),  # sparse로 null 중복 허용
             IndexModel([("email", 1)], unique=True),
             IndexModel([("created_at", -1)]),
         ]

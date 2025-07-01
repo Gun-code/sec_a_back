@@ -85,17 +85,25 @@ async def get_google_login_url_endpoint(request: LoginUrlRequest) -> LoginUrlRes
         # 사용자가 없으면 미리 생성 (토큰 없이)
         if not user_token:
             logger.info("Creating new user...")
-            new_user = User(
-                user_id=user_id,
-                username=None,  # OAuth에서 받을 예정
-                email=user_email,
-                created_at=datetime.now(),  # 필수 필드 추가
-                access_token=None,
-                refresh_token=None,
-                expires_at=None
-            )
-            await user_repo.create(new_user)
-            logger.info("New user created successfully")
+            
+            # 이메일로도 확인해서 기존 사용자가 있는지 체크
+            existing_user = await user_repo.get_by_email(user_email)
+            if existing_user:
+                logger.info(f"User already exists with email: {user_email}")
+                user_token = existing_user
+            else:
+                # 정말 새로운 사용자인 경우에만 생성
+                new_user = User(
+                    user_id=user_id,
+                    username=None,  # OAuth에서 받을 예정
+                    email=user_email,
+                    created_at=datetime.now(),  # 필수 필드 추가
+                    access_token=None,
+                    refresh_token=None,
+                    expires_at=None
+                )
+                await user_repo.create(new_user)
+                logger.info("New user created successfully")
         
         # 구글 로그인 URL 생성 (state 없이)
         logger.info("Generating Google login URL...")

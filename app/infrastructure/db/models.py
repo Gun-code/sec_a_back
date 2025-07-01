@@ -6,17 +6,25 @@ from pymongo import IndexModel
 
 class UserDocument(Document):
     """사용자 MongoDB 문서 모델"""
-    username: Indexed(str, unique=True)  # 인덱스와 유니크 제약 조건
-    email: Indexed(EmailStr, unique=True)
+    user_id: Indexed(str, unique=True)  # 디스코드 사용자 ID (기본 키)
+    username: Optional[str] = None  # 사용자명 (Google OAuth에서 받음)
+    email: Indexed(EmailStr, unique=True)  # 이메일 (유니크)
     full_name: Optional[str] = None
     is_active: bool = True
+    
+    # OAuth 관련 필드들
+    access_token: Optional[str] = None
+    refresh_token: Optional[str] = None
+    expires_at: Optional[datetime] = None
+    
     created_at: datetime = Field(default_factory=datetime.now)
     updated_at: datetime = Field(default_factory=datetime.now)
     
     class Settings:
         name = "users"  # MongoDB 컬렉션 이름
         indexes = [
-            IndexModel([("username", 1)], unique=True),
+            IndexModel([("user_id", 1)], unique=True),  # user_id가 기본 키
+            IndexModel([("username", 1)], unique=True, sparse=True),  # username은 선택적 유니크
             IndexModel([("email", 1)], unique=True),
             IndexModel([("created_at", -1)]),
         ]

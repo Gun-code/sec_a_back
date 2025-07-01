@@ -60,14 +60,17 @@ async def get_google_login_url_endpoint(request: LoginUrlRequest) -> LoginUrlRes
     try:
         user_id = request.user_id
         user_email = request.user_email
+        logger.info(f"Login request - user_id: {user_id}, user_email: {user_email}")
         
         # 기존 사용자 확인
         user_repo = UserRepository()
+        logger.info("Checking existing user token...")
         user_token = await user_repo.get_token_by_id(user_id)
         
         if user_token and user_token.access_token:
             # 토큰이 있다면 토큰 검증
             try:
+                logger.info("Verifying existing token...")
                 token_info = await verify_google_token(user_token.access_token)
                 if token_info:
                     return LoginUrlResponse(
@@ -76,10 +79,12 @@ async def get_google_login_url_endpoint(request: LoginUrlRequest) -> LoginUrlRes
                     )
             except:
                 # 토큰이 만료되었으면 새로 로그인 진행
+                logger.info("Token verification failed, proceeding with new login")
                 pass
         
         # 사용자가 없으면 미리 생성 (토큰 없이)
         if not user_token:
+            logger.info("Creating new user...")
             new_user = User(
                 user_id=user_id,
                 username=None,  # OAuth에서 받을 예정
@@ -90,9 +95,12 @@ async def get_google_login_url_endpoint(request: LoginUrlRequest) -> LoginUrlRes
                 expires_at=None
             )
             await user_repo.create(new_user)
+            logger.info("New user created successfully")
         
         # 구글 로그인 URL 생성 (state 없이)
+        logger.info("Generating Google login URL...")
         login_url = get_google_login_url()
+        logger.info(f"Google login URL generated successfully: {login_url[:50]}...")
         
         return LoginUrlResponse(
             login_url=login_url,
@@ -101,6 +109,9 @@ async def get_google_login_url_endpoint(request: LoginUrlRequest) -> LoginUrlRes
         
     except Exception as e:
         logger.error(f"Failed to generate Google login URL: {e}")
+        logger.error(f"Error type: {type(e).__name__}")
+        import traceback
+        logger.error(f"Full traceback: {traceback.format_exc()}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to generate login URL"

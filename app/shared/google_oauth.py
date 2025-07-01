@@ -32,6 +32,13 @@ async def verify_google_token(access_token: str) -> Dict[str, Any]:
 def get_google_login_url(state: str = None) -> str:
     """구글 OAuth 로그인 URL 생성"""
     
+    # Google OAuth 설정 검증
+    if not settings.google_client_id:
+        raise ValueError("GOOGLE_CLIENT_ID가 설정되지 않았습니다. .env 파일을 확인하세요.")
+    
+    if not settings.google_oauth_redirect_uri:
+        raise ValueError("GOOGLE_OAUTH_REDIRECT_URI가 설정되지 않았습니다. .env 파일을 확인하세요.")
+    
     base_url = "https://accounts.google.com/o/oauth2/auth"
     
     params = {

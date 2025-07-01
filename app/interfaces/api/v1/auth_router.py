@@ -84,6 +84,7 @@ async def get_google_login_url_endpoint(request: LoginUrlRequest) -> LoginUrlRes
                 user_id=user_id,
                 username=None,  # OAuth에서 받을 예정
                 email=user_email,
+                created_at=datetime.now(),  # 필수 필드 추가
                 access_token=None,
                 refresh_token=None,
                 expires_at=None

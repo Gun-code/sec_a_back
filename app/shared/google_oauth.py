@@ -45,7 +45,7 @@ def get_google_login_url(state: str = None) -> str:
     params = {
         "client_id": settings.google_client_id,
         "redirect_uri": settings.google_oauth_redirect_uri,
-        "scope": "openid email profile",
+        "scope": "openid email profile https://www.googleapis.com/auth/calendar.readonly", # 구글 캘린더 읽기 권한
         "response_type": "code",
         "access_type": "offline",
     }

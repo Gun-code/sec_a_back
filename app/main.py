@@ -55,30 +55,43 @@ async def health_check():
         "auth": "google_oauth2"
     }
 
-# 벡터 검색 API 추가
-@app.post("/api/v1/search")
-async def search_documents(query: str, limit: int = 10):
-    """벡터 기반 문서 검색"""
-    from infrastructure.db.vector_repository import VectorRepository
-    
-    vector_repo = VectorRepository()
-    results = vector_repo.search_similar(query, limit)
-    
-    return {
-        "query": query,
-        "results": results,
-        "total": len(results)
-    }
+# TODO: 벡터 검색 API 구현 예정
+# @app.post("/api/v1/search")
+# async def search_documents(query: str, limit: int = 10):
+#     """벡터 기반 문서 검색"""
+#     from infrastructure.db.vector_repository import VectorRepository
+#     
+#     vector_repo = VectorRepository()
+#     results = vector_repo.search_similar(query, limit)
+#     
+#     return {
+#         "query": query,
+#         "results": results,
+#         "total": len(results)
+#     }
 
-@app.get("/api/v1/vector/info")
-async def get_vector_info():
-    """벡터 데이터베이스 정보 조회"""
-    from infrastructure.db.vector_repository import VectorRepository
-    
-    vector_repo = VectorRepository()
-    info = vector_repo.get_collection_info()
-    
-    return info
+# TODO: 벡터 데이터베이스 정보 API 구현 예정
+# @app.get("/api/v1/vector/info")
+# async def get_vector_info():
+#     """벡터 데이터베이스 정보 조회"""
+#     from infrastructure.db.vector_repository import VectorRepository
+#     
+#     vector_repo = VectorRepository()
+#     info = vector_repo.get_collection_info()
+#     
+#     return info
+
+# TODO: 구글 캘린더 API 구현 예정
+# @app.get("/api/v1/calendar/events")
+# async def get_calendar_events():
+#     """구글 캘린더 이벤트 조회"""
+#     pass
+
+# TODO: 디스코드 웹훅 API 구현 예정
+# @app.post("/api/v1/discord/webhook")
+# async def discord_webhook():
+#     """디스코드 웹훅 처리"""
+#     pass
 
 if __name__ == "__main__":
     import uvicorn

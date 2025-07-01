@@ -75,7 +75,7 @@ async def get_google_login_url_endpoint(request: LoginUrlRequest) -> LoginUrlRes
                 if token_info:
                     return LoginUrlResponse(
                         login_url='',
-                        message="이미 로그인되어 있습니다"
+                        message="유효한 토큰"
                     )
             except:
                 # 토큰이 만료되었으면 새로 로그인 진행
@@ -112,7 +112,7 @@ async def get_google_login_url_endpoint(request: LoginUrlRequest) -> LoginUrlRes
         
         return LoginUrlResponse(
             login_url=login_url,
-            message="구글 계정으로 로그인하세요"
+            message="유효하지 않은 토큰"
         )
         
     except Exception as e:

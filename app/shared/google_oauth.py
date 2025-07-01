@@ -1,6 +1,7 @@
 import httpx
 from typing import Dict, Any
 from config.settings import settings
+from urllib.parse import urlencode
 import logging
 
 logger = logging.getLogger(__name__)
@@ -39,7 +40,7 @@ def get_google_login_url(state: str = None) -> str:
     if not settings.google_oauth_redirect_uri:
         raise ValueError("GOOGLE_OAUTH_REDIRECT_URI가 설정되지 않았습니다. .env 파일을 확인하세요.")
     
-    base_url = "https://accounts.google.com/o/oauth2/auth"
+    base_url = "https://accounts.google.com/o/oauth2/v2/auth"
     
     params = {
         "client_id": settings.google_client_id,
@@ -53,7 +54,7 @@ def get_google_login_url(state: str = None) -> str:
         params["state"] = state
     
     # URL 생성
-    query_string = "&".join([f"{k}={v}" for k, v in params.items()])
+    query_string = urlencode(params)
     
     return f"{base_url}?{query_string}"
 

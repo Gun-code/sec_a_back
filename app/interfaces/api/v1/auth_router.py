@@ -15,7 +15,7 @@ from datetime import datetime, timedelta
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/auth", tags=["Authentication"])
+router = APIRouter(tags=["Authentication"])
 
 # 요청/응답 모델
 class TokenVerifyRequest(BaseModel):

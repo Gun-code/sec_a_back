@@ -206,42 +206,42 @@ async def google_oauth_callback(
             detail="OAuth callback failed"
         )
 
-@router.post("/verify")
-async def verify_google_token_endpoint(request: TokenVerifyRequest):
-    """구글 Access Token을 검증합니다"""
+# @router.post("/verify")
+# async def verify_google_token_endpoint(request: TokenVerifyRequest):
+#     """구글 Access Token을 검증합니다"""
     
-    try:
-        # 구글 토큰 검증 및 사용자 정보 조회
-        user_info = await verify_google_token(request.access_token)
+#     try:
+#         # 구글 토큰 검증 및 사용자 정보 조회
+#         user_info = await verify_google_token(request.access_token)
         
-        # 토큰 정보도 함께 조회
-        try:
-            token_info = await get_token_info(request.access_token)
-            expires_in = token_info.get("expires_in")
-        except:
-            expires_in = None
+#         # 토큰 정보도 함께 조회
+#         try:
+#             token_info = await get_token_info(request.access_token)
+#             expires_in = token_info.get("expires_in")
+#         except:
+#             expires_in = None
         
-        logger.info(f"Token verification successful for user: {user_info.get('email')}")
+#         logger.info(f"Token verification successful for user: {user_info.get('email')}")
         
-        return {
-            "message": "Token verification successful",
-            "user_info": user_info,
-            "token_expires_in": expires_in,
-            "note": "Token expiration info is managed by Google OAuth server"
-        }
+#         return {
+#             "message": "Token verification successful",
+#             "user_info": user_info,
+#             "token_expires_in": expires_in,
+#             "note": "Token expiration info is managed by Google OAuth server"
+#         }
         
-    except ValueError as e:
-        logger.warning(f"Token verification failed: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=str(e)
-        )
-    except Exception as e:
-        logger.error(f"Unexpected token verification error: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Token verification failed"
-        )
+#     except ValueError as e:
+#         logger.warning(f"Token verification failed: {e}")
+#         raise HTTPException(
+#             status_code=status.HTTP_401_UNAUTHORIZED,
+#             detail=str(e)
+#         )
+#     except Exception as e:
+#         logger.error(f"Unexpected token verification error: {e}")
+#         raise HTTPException(
+#             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+#             detail="Token verification failed"
+#         )
 
 @router.post("/token/refresh", response_model=TokenResponse)
 async def refresh_token_endpoint(request: TokenRefreshRequest):
@@ -316,3 +316,23 @@ async def get_token_info_endpoint():
             "refresh": "POST /api/v1/auth/token/refresh"
         }
     } 
+
+@router.post("/calendar")
+async def get_calendar_endpoint(request: CalendarRequest):
+    """구글 Oauth2 액세스 토큰을 통해 캘린더 정보를 조회합니다."""
+    
+    try:
+        # 구글 캘린더 API 호출
+        calendar_data = await get_calendar_data(request.access_token)
+        
+        return {
+            "message": "Calendar data retrieved successfully",
+            "calendar_data": calendar_data
+        }
+        
+    except Exception as e:
+        logger.error(f"Error retrieving calendar data: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to retrieve calendar data"
+        )

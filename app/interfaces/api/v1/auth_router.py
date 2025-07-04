@@ -10,6 +10,8 @@ from shared.google_oauth import (
     refresh_access_token,
     get_token_info
 )
+from shared.google_callendar import get_google_calendar_events, save_google_calendar_events
+from application.user.dto import CalendarRequest, CalendarResponse
 import logging
 from datetime import datetime, timedelta
 
@@ -317,18 +319,49 @@ async def get_token_info_endpoint():
         }
     } 
 
-@router.post("/calendar")
+
+
+# 구글 캘린더 정보 조회
+@router.post("/calendar", response_model=CalendarResponse)
 async def get_calendar_endpoint(request: CalendarRequest):
     """구글 Oauth2 액세스 토큰을 통해 캘린더 정보를 조회합니다."""
-    
     try:
-        # 구글 캘린더 API 호출
-        calendar_data = await get_calendar_data(request.access_token)
+        user_repo = UserRepository()
+        # 사용자 정보 조회
+        user = await user_repo.get_by_id(request.id)
+        # user email 존재 확인
+        if not user.email:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="login first"
+            )
         
-        return {
-            "message": "Calendar data retrieved successfully",
-            "calendar_data": calendar_data
-        }
+        # oauth access token 존재 확인
+        if not user.access_token:
+            req = LoginUrlRequest(
+                user_id=user.user_id,
+                user_email=user.email
+            )
+            return await get_google_login_url_endpoint(req)
+        
+        # access token 검증
+        token_info = await verify_google_token(user.access_token)
+        if not token_info:
+            req = LoginUrlRequest(
+                user_id=user.user_id,
+                user_email=user.email
+            )
+            return await get_google_login_url_endpoint(req)
+        
+        # 구글 캘린더 API 호출
+        calendar_data = await get_google_calendar_events(user.access_token)
+
+        # 캘린더 데이터 저장
+        calendar_data = await save_google_calendar_events(calendar_data)
+        
+        return CalendarResponse(
+               message="Success",
+        )
         
     except Exception as e:
         logger.error(f"Error retrieving calendar data: {e}")

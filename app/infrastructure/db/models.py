@@ -1,14 +1,14 @@
 from beanie import Document, Indexed
-from pydantic import Field, EmailStr
-from typing import Optional, List
+from pydantic import Field, EmailStr, BaseModel
+from typing import Optional, List, Literal, Annotated
 from datetime import datetime
 from pymongo import IndexModel
 
 class UserDocument(Document):
     """사용자 MongoDB 문서 모델"""
-    user_id: Indexed(str, unique=True)  # 디스코드 사용자 ID (기본 키)
+    user_id: Annotated[str, Indexed(unique=True)]  # 디스코드 사용자 ID (기본 키)
     username: Optional[str] = None  # 사용자명 (Google OAuth에서 받음)
-    email: Indexed(EmailStr, unique=True)  # 이메일 (유니크)
+    email: Annotated[EmailStr, Indexed(unique=True)]  # 이메일 (유니크)
     full_name: Optional[str] = None
     is_active: bool = True
     
@@ -29,33 +29,62 @@ class UserDocument(Document):
             IndexModel([("created_at", -1)]),
         ]
 
+class EventDateTime(BaseModel):
+    date: Optional[str] = None         # 종일 이벤트 (YYYY-MM-DD)
+    dateTime: Optional[datetime] = None  # 시간 포함 이벤트
+    timeZone: Optional[str] = None
+
+class EventCreator(BaseModel):
+    email: Optional[str]
+    displayName: Optional[str] = None
+    self: Optional[bool] = None
+
+class EventOrganizer(BaseModel):
+    email: Optional[str]
+    displayName: Optional[str] = None
+    self: Optional[bool] = None
+
+class EventReminder(BaseModel):
+    useDefault: Optional[bool]
+    overrides: Optional[List[dict]] = None
+
 class EventDocument(Document):
-    """이벤트 MongoDB 문서 모델 (구글 캘린더 연동용)"""
-    title: str
+    """Google Calendar 이벤트 문서 모델"""
+    google_event_id: Annotated[Optional[str], Indexed(unique=True)]
+    status: Optional[Literal["confirmed", "tentative", "cancelled"]] = "confirmed"
+    title: Optional[str] = None
     description: Optional[str] = None
-    start_datetime: datetime
-    end_datetime: datetime
     location: Optional[str] = None
+    html_link: Optional[str] = None
+
+    start: EventDateTime
+    end: EventDateTime
     is_all_day: bool = False
-    google_event_id: Optional[Indexed(str, unique=True)] = None
-    created_by_user_id: Optional[str] = None  # UserDocument의 ID 참조
-    created_at: datetime = Field(default_factory=datetime.now)
-    updated_at: datetime = Field(default_factory=datetime.now)
-    
+
+    recurrence: Optional[List[str]] = None
+    reminders: Optional[EventReminder] = None
+
+    creator: Optional[EventCreator] = None
+    organizer: Optional[EventOrganizer] = None
+
+    created_by_user_email: Optional[str] = None  # 내부 유저 ID
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
     class Settings:
         name = "events"
         indexes = [
-            IndexModel([("start_datetime", 1)]),
-            IndexModel([("google_event_id", 1)], unique=True, sparse=True),
-            IndexModel([("created_by_user_id", 1)]),
+            {"key": [("google_event_id", 1)], "unique": True, "sparse": True},
+            {"key": [("created_by_user_id", 1)]},
+            {"key": [("start.dateTime", 1)]},  # 시간 기반 쿼리용 인덱스
         ]
 
 class DiscordMessageDocument(Document):
     """디스코드 메시지 로그 MongoDB 문서 모델"""
-    discord_message_id: Indexed(str, unique=True)
-    discord_channel_id: Indexed(str)
-    discord_guild_id: Optional[Indexed(str)] = None
-    discord_user_id: Indexed(str)
+    discord_message_id: Annotated[str, Indexed(unique=True)]
+    discord_channel_id: Annotated[str, Indexed()]
+    discord_guild_id: Optional[Annotated[str, Indexed()]] = None
+    discord_user_id: Annotated[str, Indexed()]
     discord_username: str
     content: Optional[str] = None
     message_type: str = "text"  # text, interaction, etc.

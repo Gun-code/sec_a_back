@@ -3,8 +3,10 @@ from bson import ObjectId
 from pymongo.errors import DuplicateKeyError
 from domain.user.entities import User
 from domain.user.repository import UserRepositoryInterface
-from .models import UserDocument
+from .models import UserDocument, EventDocument, EventDateTime, EventCreator, EventOrganizer, EventReminder
 import logging
+from datetime import datetime
+from dateutil.parser import parse as parse_datetime
 
 logger = logging.getLogger(__name__)
 
@@ -126,10 +128,70 @@ class UserRepository(UserRepositoryInterface):
         )
 
 
-# TODO: 구글 캘린더 연동 기능 구현 예정
+
 class EventRepository:
     """이벤트 레포지토리 (구글 캘린더 연동용)"""
+
+class EventRepository:
+    """이벤트 레포지토리"""
+
+    async def create(self, item: dict, created_by_user_email: str) -> EventDocument:
+        """구글 캘린더 이벤트 1개 저장"""
+        try:
+            # 시작/종료 날짜 파싱
+            is_all_day = "date" in item.get("start", {})
+            start_dt = EventDateTime(
+                date=item["start"].get("date"),
+                dateTime=parse_datetime(item["start"]["dateTime"]) if "dateTime" in item["start"] else None,
+                timeZone=item["start"].get("timeZone")
+            )
+            end_dt = EventDateTime(
+                date=item["end"].get("date"),
+                dateTime=parse_datetime(item["end"]["dateTime"]) if "dateTime" in item["end"] else None,
+                timeZone=item["end"].get("timeZone")
+            )
+
+            # 문서 생성
+            event_doc = EventDocument(
+                google_event_id=item["id"],
+                status=item.get("status", "confirmed"),
+                title=item.get("summary"),
+                description=item.get("description"),
+                location=item.get("location"),
+                html_link=item.get("htmlLink"),
+                start=start_dt,
+                end=end_dt,
+                is_all_day=is_all_day,
+                recurrence=item.get("recurrence"),
+                reminders=EventReminder(**item["reminders"]) if "reminders" in item else None,
+                creator=EventCreator(**item["creator"]) if "creator" in item else None,
+                organizer=EventOrganizer(**item["organizer"]) if "organizer" in item else None,
+                created_by_user_email=created_by_user_email,
+                created_at=parse_datetime(item.get("created", datetime.utcnow().isoformat())),
+                updated_at=parse_datetime(item.get("updated", datetime.utcnow().isoformat()))
+            )
+
+            await event_doc.insert()
+            return event_doc
+
+        except DuplicateKeyError:
+            raise ValueError("Event with this google_event_id already exists")
+
+async def create_many(self, items: List[dict], user_email: str):
+    """구글 캘린더 이벤트 여러 개 저장"""
+    results = []
+    for item in items:
+        try:
+            result = await self.create(item, created_by_user_email=user_email)
+            results.append(result)
+        except ValueError:
+            continue  # 중복은 건너뜀
+    return results
+
     
+    async def get_by_id(self, event_id: str) -> Optional[Event]:
+        """이벤트 ID로 이벤트 조회"""
+        pass
     def __init__(self):
         pass
     

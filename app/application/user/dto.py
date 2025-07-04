@@ -105,3 +105,18 @@ class MessageResponse(BaseModel):
                 "message": "User deleted successfully"
             }
         } 
+
+class CalendarRequest(BaseModel):
+    """구글 캘린더 정보 조회 요청 DTO"""
+    id: str
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "id": "1234567890"
+            }
+        }
+
+class CalendarResponse(BaseModel):
+    """구글 캘린더 정보 조회 응답 DTO"""
+    message: str

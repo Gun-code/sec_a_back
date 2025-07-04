@@ -54,13 +54,21 @@ async def get_google_calendar_events(access_token: str):
         response = await client.get(url, headers=headers)
         return response.json()
     
-async def save_google_calendar_events(calendar_data: dict):
-    # 캘린더 데이터 mongoDB 저장
-    event_repo = EventRepository()
-    user_email = calendar_data["email"]
-    calenar_items = get_google_calendar_events(user_email)
-    if not calenar_items:
-        await event_repo.create_many(calendar_data["items"], user_email)
-    else:
-        await event_repo.update_many(calendar_data["items"], user_email)
-    return calendar_data
+async def save_google_calendar_events(access_token: str, user_email: str):
+    """캘린더 데이터를 MongoDB에 저장"""
+    try:
+        # 캘린더 데이터 조회
+        calendar_items = await get_google_calendar_events(access_token)
+        
+        if not calendar_items or "items" not in calendar_items:
+            return 0
+        
+        # 이벤트 데이터 저장
+        event_repo = EventRepository()
+        return await event_repo.update_many(calendar_items["items"], user_email)
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to save calendar events: {str(e)}"
+        )

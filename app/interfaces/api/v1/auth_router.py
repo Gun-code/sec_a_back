@@ -45,8 +45,6 @@ class TokenResponse(BaseModel):
 
 class OAuthCallbackResponse(BaseModel):
     message: str
-    token: TokenResponse
-    user_info: Dict[str, Any]
 
 class RefreshTokenErrorResponse(BaseModel):
     error: str
@@ -159,40 +157,46 @@ async def google_oauth_callback(
         google_email = user_info.get("email")
         
         if not google_email:
-            raise ValueError("Google email not received")
+            return OAuthCallbackResponse(
+                message="Google email not received"
+            )
         
-        # 이메일로 기존 사용자 찾기 (디스코드 사용자 ID 유지)
+        # 사용자 정보 저장 및 업데이트
         user_repo = UserRepository()
         user = await user_repo.get_by_email(google_email)
         
         if not user:
-            raise ValueError(f"No user found for email: {google_email}. Please initiate login first.")
+            return OAuthCallbackResponse(
+                message="User not found"
+            )
         
         # 기존 사용자 정보 업데이트 (user_id는 기존 디스코드 ID 유지)
-        user.username = user_info.get("name")
-        user.access_token = access_token
-        user.refresh_token = token_data.get("refresh_token")
-        user.expires_at = expires_at
-        user.updated_at = datetime.now()
-        
-        await user_repo.update(user)
-        
-        # 토큰 응답 구성
-        token_response = TokenResponse(
+        update_user = User(
+            user_id=user.user_id,
+            email=google_email,  # 필수 필드 추가
+            username=user_info.get("name"),
             access_token=access_token,
-            token_type="Bearer",
-            expires_in=expires_in,
-            expires_at=expires_at.isoformat() + "Z",
             refresh_token=token_data.get("refresh_token"),
-            scope=token_data.get("scope")
+            expires_at=expires_at,
+            updated_at=datetime.now(),
+            is_active=True
         )
         
-        logger.info(f"OAuth login successful for user: {google_email} -> discord_id: {user.user_id} (expires in {expires_in}s)")
+        await user_repo.update(update_user)
         
+        logger.info(f"OAuth login successful for user: {google_email} -> discord_id: {user.user_id} (expires in {expires_in}s)")
+
+        # calendar 조회 및 저장 - 수정된 함수 호출
+        try:
+            count_update = await save_google_calendar_events(access_token, google_email)
+            logger.info(f"Calendar data: {count_update} events updated")
+        except Exception as e:
+            logger.error(f"Failed to save calendar events: {e}")
+            # 캘린더 저장 실패해도 로그인은 성공으로 처리
+            count_update = 0
+
         return OAuthCallbackResponse(
-            message="Login successful",
-            token=token_response,
-            user_info=user_info
+            message=f"Login successful, {count_update} events updated"
         )
         
     except ValueError as e:
@@ -356,11 +360,11 @@ async def get_calendar_endpoint(request: CalendarRequest):
         # 구글 캘린더 API 호출
         calendar_data = await get_google_calendar_events(user.access_token)
 
-        # 캘린더 데이터 저장
-        calendar_data = await save_google_calendar_events(calendar_data)
+        # 캘린더 데이터 저장 - 수정된 함수 호출
+        count_update = await save_google_calendar_events(user.access_token, user.email)
         
         return CalendarResponse(
-               message="Success",
+               message=f"Success, {count_update} events updated",
         )
         
     except Exception as e:

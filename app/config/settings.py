@@ -69,4 +69,4 @@ class Settings(BaseSettings):
         env_file_encoding = "utf-8"
         extra = "ignore"  # 추가 필드 무시
 
-settings = Settings() 
+settings = Settings()

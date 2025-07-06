@@ -6,6 +6,17 @@ from interfaces.api.v1.auth_router import router as auth_router
 from config.settings import settings
 from infrastructure.db.session import init_db, close_db
 from fastapi.responses import FileResponse
+from motor.motor_asyncio import AsyncIOMotorClient
+from beanie import init_beanie
+from infrastructure.db.models import DOCUMENT_MODELS
+from config.settings import get_settings
+import logging
+
+# 로깅 설정
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+settings = get_settings()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -17,11 +28,38 @@ async def lifespan(app: FastAPI):
     await close_db()
 
 app = FastAPI(
-    title="Backend API",
-    description="클린 아키텍처를 따른 FastAPI 백엔드 (MongoDB + ChromaDB)",
-    version="1.0.0",
-    lifespan=lifespan
+    title="Discord Bot API",
+    description="Discord Bot with Google Calendar Integration",
+    version="1.0.0"
 )
+
+@app.on_event("startup")
+async def startup_event():
+    """애플리케이션 시작 시 MongoDB 연결 초기화"""
+    try:
+        # MongoDB 클라이언트 생성
+        client = AsyncIOMotorClient(settings.MONGODB_URL)
+        
+        # Beanie 초기화
+        await init_beanie(
+            database=client[settings.DATABASE_NAME],
+            document_models=DOCUMENT_MODELS
+        )
+        
+        logger.info("MongoDB connection established successfully")
+        
+        # 인덱스 확인 (디버그용)
+        db = client[settings.DATABASE_NAME]
+        for collection_name in ["users", "events", "discord_messages"]:
+            if collection_name in await db.list_collection_names():
+                indexes = await db[collection_name].list_indexes().to_list(None)
+                logger.info(f"Collection '{collection_name}' indexes:")
+                for idx in indexes:
+                    logger.info(f"  - {idx}")
+        
+    except Exception as e:
+        logger.error(f"Failed to connect to MongoDB: {e}")
+        raise
 
 # CORS 설정
 app.add_middleware(

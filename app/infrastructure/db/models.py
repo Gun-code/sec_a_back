@@ -22,12 +22,13 @@ class UserDocument(Document):
     
     class Settings:
         name = "users"  # MongoDB 컬렉션 이름
-        indexes = [
-            IndexModel([("user_id", 1)], unique=True),  # user_id가 기본 키
-            IndexModel([("username", 1)], unique=True, sparse=True),  # sparse로 null 중복 허용
-            IndexModel([("email", 1)], unique=True),
-            IndexModel([("created_at", -1)]),
-        ]
+        # 임시로 인덱스 제거하여 테스트
+        # indexes = [
+        #     IndexModel([("user_id", 1)], unique=True),  # user_id가 기본 키
+        #     IndexModel([("username", 1)], unique=True, sparse=True),  # sparse로 null 중복 허용
+        #     IndexModel([("email", 1)], unique=True),
+        #     IndexModel([("created_at", -1)]),
+        # ]
 
 class EventDateTime(BaseModel):
     date: Optional[str] = None         # 종일 이벤트 (YYYY-MM-DD)
@@ -73,11 +74,12 @@ class EventDocument(Document):
 
     class Settings:
         name = "events"
-        indexes = [
-            {"key": [("google_event_id", 1)], "unique": True, "sparse": True},
-            {"key": [("created_by_user_email", 1)]},
-            {"key": [("start.dateTime", 1)]},  # 시간 기반 쿼리용 인덱스
-        ]
+        # 임시로 인덱스 제거하여 테스트
+        # indexes = [
+        #     IndexModel([("google_event_id", 1)], unique=True, sparse=True),
+        #     IndexModel([("created_by_user_email", 1)]),
+        #     IndexModel([("start.dateTime", 1)], sparse=True),  # 시간 기반 쿼리용 인덱스 (null 허용)
+        # ]
 
 class DiscordMessageDocument(Document):
     """디스코드 메시지 로그 MongoDB 문서 모델"""
@@ -92,12 +94,13 @@ class DiscordMessageDocument(Document):
     
     class Settings:
         name = "discord_messages"
-        indexes = [
-            IndexModel([("discord_message_id", 1)], unique=True),
-            IndexModel([("discord_channel_id", 1)]),
-            IndexModel([("discord_user_id", 1)]),
-            IndexModel([("created_at", -1)]),
-        ]
+        # 임시로 인덱스 제거하여 테스트
+        # indexes = [
+        #     IndexModel([("discord_message_id", 1)], unique=True),
+        #     IndexModel([("discord_channel_id", 1)]),
+        #     IndexModel([("discord_user_id", 1)]),
+        #     IndexModel([("created_at", -1)]),
+        # ]
 
 class VectorDocument(Document):
     """ChromaDB와 동기화를 위한 벡터 문서 메타데이터"""
@@ -110,11 +113,12 @@ class VectorDocument(Document):
     
     class Settings:
         name = "vectors"
-        indexes = [
-            IndexModel([("vector_id", 1)], unique=True),
-            IndexModel([("source_id", 1)]),
-            IndexModel([("content_type", 1)]),
-        ]
+        # 임시로 인덱스 제거하여 테스트
+        # indexes = [
+        #     IndexModel([("vector_id", 1)], unique=True),
+        #     IndexModel([("source_id", 1)]),
+        #     IndexModel([("content_type", 1)]),
+        # ]
 
 # Beanie에서 사용할 문서 모델들
 DOCUMENT_MODELS = [

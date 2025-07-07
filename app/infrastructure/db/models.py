@@ -23,12 +23,12 @@ class UserDocument(Document):
     class Settings:
         name = "users"  # MongoDB 컬렉션 이름
         # 임시로 인덱스 제거하여 테스트
-        # indexes = [
-        #     IndexModel([("user_id", 1)], unique=True),  # user_id가 기본 키
-        #     IndexModel([("username", 1)], unique=True, sparse=True),  # sparse로 null 중복 허용
-        #     IndexModel([("email", 1)], unique=True),
-        #     IndexModel([("created_at", -1)]),
-        # ]
+        indexes = [
+            IndexModel([("user_id", 1)], unique=True),  # user_id가 기본 키
+            IndexModel([("username", 1)], unique=True, sparse=True),  # sparse로 null 중복 허용
+            IndexModel([("email", 1)], unique=True),
+            IndexModel([("created_at", -1)]),
+        ]
 
 class EventDateTime(BaseModel):
     date: Optional[str] = None         # 종일 이벤트 (YYYY-MM-DD)

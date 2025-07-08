@@ -173,7 +173,8 @@ async def google_oauth_callback(
         # 기존 사용자 정보 업데이트 (user_id는 기존 디스코드 ID 유지)
         update_user = User(
             user_id=user.user_id,
-            email=google_email,  # 필수 필드 추가
+            email=google_email,
+            created_at=user.created_at,  # 기존 사용자의 created_at 유지
             username=user_info.get("name"),
             access_token=access_token,
             refresh_token=token_data.get("refresh_token"),

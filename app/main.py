@@ -103,10 +103,12 @@ async def health_check():
         "auth": "google_oauth2"
     }
 
-# 파비콘 get 요청 시 sec_a_favicon.ico 파일 반환
+# 파비콘 get 요청 시 favicon.ico 파일 반환
 @app.get("/favicon.ico")
 async def favicon():
-    return FileResponse("favicon.ico")
+    from pathlib import Path
+    favicon_path = Path(__file__).parent.parent / "favicon.ico"
+    return FileResponse(favicon_path)
 
 # TODO: 벡터 검색 API 구현 예정
 # @app.post("/api/v1/search")

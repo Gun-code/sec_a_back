@@ -105,9 +105,9 @@ async def get_google_login_url_endpoint(request: LoginUrlRequest) -> LoginUrlRes
                 await user_repo.create(new_user)
                 logger.info("New user created successfully")
         
-        # 구글 로그인 URL 생성 (state 없이)
+        # 구글 로그인 URL 생성 (기본 스코프만 사용)
         logger.info("Generating Google login URL...")
-        login_url = get_google_login_url()
+        login_url = get_google_login_url(include_calendar=False)
         logger.info(f"Google login URL generated successfully: {login_url[:50]}...")
         
         return LoginUrlResponse(

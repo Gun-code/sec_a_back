@@ -18,7 +18,7 @@ async def verify_google_token(access_token: str) -> Dict[str, Any]:
             )
             
             if response.status_code != 200:
-                login_url = get_google_login_url()
+                login_url = get_google_login_url(include_calendar=False)
                 return login_url
             
             user_info = response.json()
@@ -30,7 +30,7 @@ async def verify_google_token(access_token: str) -> Dict[str, Any]:
         logger.error(f"Error verifying Google token: {e}")
         raise ValueError("Failed to verify Google token")
 
-def get_google_login_url(state: str = None) -> str:
+def get_google_login_url(state: str = None, include_calendar: bool = False) -> str:
     """구글 OAuth 로그인 URL 생성"""
     
     # Google OAuth 설정 검증
@@ -42,10 +42,17 @@ def get_google_login_url(state: str = None) -> str:
     
     base_url = "https://accounts.google.com/o/oauth2/v2/auth"
     
+    # 기본 스코프
+    scope = "openid email profile"
+    
+    # Calendar API 스코프 조건부 추가
+    if include_calendar:
+        scope += " https://www.googleapis.com/auth/calendar.readonly"
+    
     params = {
         "client_id": settings.google_client_id,
         "redirect_uri": settings.google_oauth_redirect_uri,
-        "scope": "openid email profile https://www.googleapis.com/auth/calendar.readonly", # 구글 캘린더 읽기 권한
+        "scope": scope,
         "response_type": "code",
         "access_type": "offline",
     }

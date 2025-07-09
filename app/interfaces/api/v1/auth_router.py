@@ -32,6 +32,7 @@ class LoginUrlRequest(BaseModel):
 
 class LoginUrlResponse(BaseModel):
     login_url: str
+    refresh_token: Optional[str] = None
     message: str
 
 class TokenResponse(BaseModel):
@@ -112,6 +113,7 @@ async def get_google_login_url_endpoint(request: LoginUrlRequest) -> LoginUrlRes
         
         return LoginUrlResponse(
             login_url=login_url,
+            refresh_token=user_token.refresh_token,
             message="유효하지 않은 토큰"
         )
         
